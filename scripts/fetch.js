@@ -4,14 +4,24 @@
  * 站点: CDDM=469029 保亭县
  */
 
-const { fetch: undiciFetch, ProxyAgent } = require('undici');
+const fetch = require('node-fetch');
+const { HttpsProxyAgent } = require('https-proxy-agent');
 
 const BASE_URL = 'https://hnsthb.hainan.gov.cn/hngxfb/dataservice/sjcl/api/21408wwfb/air/getSiteCityData';
 const SITE_CODE = '469029'; // 保亭县
 const SITE_NAME = '保亭县';
 
-const PROXY_URL = 'http://101.201.225.47:80';
-const proxyAgent = new ProxyAgent(PROXY_URL);
+// 代理配置：host/username/password 由环境变量传入（GitHub Actions 通过 variables 注入）
+const proxyConfig = process.env.PROXY_HOST
+  ? {
+      port: 3128,
+      host: process.env.PROXY_HOST,
+      protocol: 'http',
+      ...(process.env.PROXY_USERNAME && { username: process.env.PROXY_USERNAME }),
+      ...(process.env.PROXY_PASSWORD && { password: process.env.PROXY_PASSWORD }),
+    }
+  : null;
+const proxyAgent = proxyConfig ? new HttpsProxyAgent(proxyConfig) : undefined;
 
 const headers = {
   'accept': 'application/json, text/plain, */*',
@@ -30,10 +40,10 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS)
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await undiciFetch(url, {
+    const res = await fetch(url, {
       ...options,
       signal: controller.signal,
-      dispatcher: proxyAgent,
+      ...(proxyAgent && { agent: proxyAgent }),
     });
     return res;
   } finally {
@@ -60,6 +70,7 @@ async function fetchAirQuality(date, hour) {
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       const res = await fetchWithTimeout(url, { headers });
+      // console.log(await res.text())
       const data = await res.json();
 
       if (data.status !== '000') {

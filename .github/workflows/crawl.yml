@@ -25,6 +25,10 @@ jobs:
         run: npm install
 
       - name: 运行爬虫
+        env:
+          PROXY_HOST: ${{ vars.PROXY_HOST }}
+          PROXY_USERNAME: ${{ vars.PROXY_USERNAME }}
+          PROXY_PASSWORD: ${{ vars.PROXY_PASSWORD }}
         run: node scripts/run.js
 
       - name: 提交并推送

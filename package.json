@@ -4,7 +4,8 @@
   "description": "海南保亭县空气质量数据自动抓取与展示",
   "private": true,
   "dependencies": {
-    "undici": "^6.0.0"
+    "https-proxy-agent": "^7.0.0",
+    "node-fetch": "^2.7.0"
   },
   "scripts": {
     "crawl": "node scripts/run.js"
