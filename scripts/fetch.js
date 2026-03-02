@@ -4,9 +4,14 @@
  * 站点: CDDM=469029 保亭县
  */
 
+const { fetch: undiciFetch, ProxyAgent } = require('undici');
+
 const BASE_URL = 'https://hnsthb.hainan.gov.cn/hngxfb/dataservice/sjcl/api/21408wwfb/air/getSiteCityData';
 const SITE_CODE = '469029'; // 保亭县
 const SITE_NAME = '保亭县';
+
+const PROXY_URL = 'http://101.201.225.47:80';
+const proxyAgent = new ProxyAgent(PROXY_URL);
 
 const headers = {
   'accept': 'application/json, text/plain, */*',
@@ -19,13 +24,17 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 5000;
 
 /**
- * 带超时的 fetch
+ * 带超时和代理的 fetch
  */
 async function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
+    const res = await undiciFetch(url, {
+      ...options,
+      signal: controller.signal,
+      dispatcher: proxyAgent,
+    });
     return res;
   } finally {
     clearTimeout(timeoutId);

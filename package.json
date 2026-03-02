@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "海南保亭县空气质量数据自动抓取与展示",
   "private": true,
+  "dependencies": {
+    "undici": "^6.0.0"
+  },
   "scripts": {
     "crawl": "node scripts/run.js"
   },
