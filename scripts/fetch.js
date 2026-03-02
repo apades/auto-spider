@@ -14,8 +14,26 @@ const headers = {
   'Referer': 'https://hnsthb.hainan.gov.cn/hngxfb/resources/dist/index.html',
 };
 
+const FETCH_TIMEOUT_MS = 60000; // 60 秒超时，适应海外到国内网络延迟
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 5000;
+
 /**
- * 获取指定时间的空气质量数据
+ * 带超时的 fetch
+ */
+async function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * 获取指定时间的空气质量数据（含重试）
  * @param {Date} date - 日期对象
  * @param {number} hour - 小时 (0-23)
  * @returns {Promise<Object>} API 返回的数据
@@ -28,14 +46,31 @@ async function fetchAirQuality(date, hour) {
   const jcsj = `${year}-${month}-${day}+${hourStr}`;
 
   const url = `${BASE_URL}?CDDM=${SITE_CODE}&JCSJ=${jcsj}`;
-  const res = await fetch(url, { headers });
-  const data = await res.json();
+  let lastError;
 
-  if (data.status !== '000') {
-    throw new Error(`API 返回错误: ${data.msg || data.status}`);
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetchWithTimeout(url, { headers });
+      const data = await res.json();
+
+      if (data.status !== '000') {
+        throw new Error(`API 返回错误: ${data.msg || data.status}`);
+      }
+
+      return data;
+    } catch (err) {
+      lastError = err;
+      const isRetryable = err.cause?.code === 'ETIMEDOUT' || err.name === 'AbortError' || err.cause?.code === 'ECONNRESET';
+      if (attempt < MAX_RETRIES && isRetryable) {
+        console.warn(`请求失败 (尝试 ${attempt}/${MAX_RETRIES}): ${err.message}，${RETRY_DELAY_MS / 1000} 秒后重试...`);
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+      } else {
+        throw lastError;
+      }
+    }
   }
 
-  return data;
+  throw lastError;
 }
 
 /**
