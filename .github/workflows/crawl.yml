@@ -10,6 +10,8 @@ on:
 jobs:
   crawl:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 允许 workflow 推送提交
     steps:
       - name: Checkout
         uses: actions/checkout@v4
