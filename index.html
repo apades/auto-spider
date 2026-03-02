@@ -99,6 +99,25 @@
       cursor: not-allowed;
     }
 
+    .content-area {
+      position: relative;
+      min-height: 500px;
+    }
+
+    .no-data-msg {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--muted);
+      font-size: 1.125rem;
+    }
+
+    .no-data-msg.show {
+      display: block;
+    }
+
     .chart-wrap {
       background: var(--card);
       border-radius: 12px;
@@ -196,11 +215,14 @@
       </div>
       <button id="load">加载数据</button>
     </div>
-    <div class="chart-wrap">
-      <h2>24 小时趋势</h2>
-      <div id="chart"></div>
-    </div>
-    <div class="table-wrap">
+    <div class="content-area">
+      <div id="no-data-msg" class="no-data-msg">没有数据文件</div>
+      <div id="main-content">
+        <div class="chart-wrap">
+          <h2>24 小时趋势</h2>
+          <div id="chart"></div>
+        </div>
+        <div class="table-wrap">
       <table>
         <thead>
           <tr>
@@ -216,6 +238,8 @@
         </thead>
         <tbody id="tbody"></tbody>
       </table>
+    </div>
+      </div>
     </div>
   </div>
 
@@ -292,22 +316,17 @@
       const month = pad(document.getElementById('month').value);
       const day = pad(document.getElementById('day').value);
 
-      const results = [];
-      for (let h = 0; h < 24; h++) {
-        const hour = pad(h);
-        const url = `${DATA_BASE}/data/${encodeURIComponent(site)}/${year}/${month}/${day}/${hour}.json`;
-        try {
-          const res = await fetch(url);
-          if (res.ok) {
-            const json = await res.json();
-            results.push({ hour: h, ...json });
-          }
-        } catch (e) {
-          console.warn(`小时 ${h} 加载失败`, e);
-        }
+      const url = `${DATA_BASE}/data/${encodeURIComponent(site)}/${year}/${month}/${day}/all.json`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const json = await res.json();
+        const hours = json.hours || [];
+        return hours.map((h, i) => h ? { hour: h.hour ?? i, ...h } : { hour: i, data: [] });
+      } catch (e) {
+        console.warn('加载 all.json 失败', e);
+        return null;
       }
-
-      return results;
     }
 
     function renderTable(rows) {
@@ -388,14 +407,25 @@
 
     document.getElementById('load').addEventListener('click', async () => {
       const btn = document.getElementById('load');
+      const noDataMsg = document.getElementById('no-data-msg');
+      const mainContent = document.getElementById('main-content');
       btn.disabled = true;
       btn.textContent = '加载中...';
       try {
         const rows = await loadDayData();
-        renderTable(rows);
-        renderChart(rows);
+        if (rows === null) {
+          noDataMsg.classList.add('show');
+          mainContent.style.display = 'none';
+          document.getElementById('tbody').innerHTML = '';
+        } else {
+          noDataMsg.classList.remove('show');
+          mainContent.style.display = '';
+          renderTable(rows);
+          renderChart(rows);
+        }
       } catch (e) {
-        document.getElementById('tbody').innerHTML = `<tr><td colspan="8" class="error">加载失败: ${e.message}</td></tr>`;
+        noDataMsg.classList.add('show');
+        mainContent.style.display = 'none';
       }
       btn.disabled = false;
       btn.textContent = '加载数据';
