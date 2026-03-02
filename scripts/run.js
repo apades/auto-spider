@@ -46,14 +46,35 @@ async function fetchAndSave(date, hour) {
   saveData(SITE_NAME, year, month, day, hour, displayData);
 }
 
+const TZ_BEIJING = 'Asia/Shanghai';
+
+/**
+ * 获取北京时间（GitHub Actions 运行在 UTC，需显式使用 Asia/Shanghai）
+ * 返回带 getFullYear/getMonth/getDate/getHours 的对象，供抓取逻辑使用
+ */
+function getBeijingNow() {
+  const d = new Date();
+  const year = parseInt(new Intl.DateTimeFormat('en', { timeZone: TZ_BEIJING, year: 'numeric' }).format(d), 10);
+  const month = parseInt(new Intl.DateTimeFormat('en', { timeZone: TZ_BEIJING, month: '2-digit' }).format(d), 10) - 1;
+  const day = parseInt(new Intl.DateTimeFormat('en', { timeZone: TZ_BEIJING, day: '2-digit' }).format(d), 10);
+  let hour = parseInt(new Intl.DateTimeFormat('en', { timeZone: TZ_BEIJING, hour: '2-digit', hour12: false, hourCycle: 'h23' }).format(d), 10);
+  if (hour === 24) hour = 0; // 某些环境下 24 表示午夜
+  return {
+    getFullYear: () => year,
+    getMonth: () => month,
+    getDate: () => day,
+    getHours: () => hour,
+  };
+}
+
 /**
  * 主入口：每小时抓取当前小时数据，并补全当天历史小时
  */
 async function main() {
-  const now = new Date();
+  const now = getBeijingNow();
   const currentHour = now.getHours();
 
-  console.log(`开始抓取 - ${now.toISOString()}`);
+  console.log(`开始抓取 - 北京时间 ${new Date().toLocaleString('zh-CN', { timeZone: TZ_BEIJING })}`);
   console.log(`当前小时: ${currentHour}`);
 
   try {
