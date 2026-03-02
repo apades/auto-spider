@@ -1,0 +1,28 @@
+name: 合并 dev 到 master
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 允许推送合并结果
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 拉取完整历史，便于合并
+
+      - name: 配置 Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: 合并 dev 到 master
+        run: |
+          git checkout master
+          git merge dev --no-edit
+          git push origin master
