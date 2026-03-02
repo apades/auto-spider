@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>海南保亭县空气质量数据</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --card: #1a2332;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --border: #30363d;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: var(--text);
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      padding: 1.25rem;
+      background: var(--card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .control-group label {
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    .control-group select {
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .control-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    button {
+      padding: 0.5rem 1.25rem;
+      border-radius: 8px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.9rem;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .chart-wrap {
+      background: var(--card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      min-height: 400px;
+    }
+
+    .chart-wrap h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--muted);
+    }
+
+    #chart {
+      width: 100%;
+      height: 380px;
+    }
+
+    .table-wrap {
+      background: var(--card);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      font-size: 0.9rem;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(88, 166, 255, 0.05);
+    }
+
+    .loading,
+    .error {
+      padding: 2rem;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .error {
+      color: #f85149;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>海南保亭县空气质量数据</h1>
+    <div class="controls">
+      <div class="control-group">
+        <label>站点</label>
+        <select id="site">
+          <option value="保亭县">保亭县</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>年</label>
+        <select id="year"></select>
+      </div>
+      <div class="control-group">
+        <label>月</label>
+        <select id="month"></select>
+      </div>
+      <div class="control-group">
+        <label>日</label>
+        <select id="day"></select>
+      </div>
+      <button id="load">加载数据</button>
+    </div>
+    <div class="chart-wrap">
+      <h2>24 小时趋势</h2>
+      <div id="chart"></div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>小时</th>
+            <th>站点</th>
+            <th>SO2</th>
+            <th>PM10</th>
+            <th>O3</th>
+            <th>PM2.5</th>
+            <th>NO2</th>
+            <th>CO</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    // 从 GitHub Pages 推断 raw 数据地址
+    function getDataBaseUrl() {
+      const host = window.location.hostname;
+      const path = window.location.pathname;
+      if (host.includes('github.io')) {
+        const parts = path.split('/').filter(Boolean);
+        const user = host.split('.')[0];
+        const repo = parts[0] || 'auto-spider';
+        return `https://raw.githubusercontent.com/${user}/${repo}/master`;
+      }
+      return 'https://raw.githubusercontent.com/apades/auto-spider/master';
+    }
+
+    const DATA_BASE = getDataBaseUrl();
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function initDateSelects() {
+      const now = new Date();
+      const yearSel = document.getElementById('year');
+      const monthSel = document.getElementById('month');
+      const daySel = document.getElementById('day');
+
+      for (let y = now.getFullYear(); y >= now.getFullYear() - 2; y--) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y + '年';
+        if (y === now.getFullYear()) opt.selected = true;
+        yearSel.appendChild(opt);
+      }
+      for (let m = 1; m <= 12; m++) {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = m + '月';
+        if (m === now.getMonth() + 1) opt.selected = true;
+        monthSel.appendChild(opt);
+      }
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      for (let d = 1; d <= daysInMonth; d++) {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d + '日';
+        if (d === now.getDate()) opt.selected = true;
+        daySel.appendChild(opt);
+      }
+
+      monthSel.addEventListener('change', () => updateDayOptions());
+      yearSel.addEventListener('change', () => updateDayOptions());
+    }
+
+    function updateDayOptions() {
+      const year = +document.getElementById('year').value;
+      const month = +document.getElementById('month').value;
+      const daySel = document.getElementById('day');
+      const curDay = +daySel.value;
+      const daysInMonth = new Date(year, month, 0).getDate();
+      daySel.innerHTML = '';
+      for (let d = 1; d <= daysInMonth; d++) {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d + '日';
+        if (d === curDay || (curDay > daysInMonth && d === daysInMonth)) opt.selected = true;
+        daySel.appendChild(opt);
+      }
+    }
+
+    async function loadDayData() {
+      const site = document.getElementById('site').value;
+      const year = document.getElementById('year').value;
+      const month = pad(document.getElementById('month').value);
+      const day = pad(document.getElementById('day').value);
+
+      const results = [];
+      for (let h = 0; h < 24; h++) {
+        const hour = pad(h);
+        const url = `${DATA_BASE}/data/${encodeURIComponent(site)}/${year}/${month}/${day}/${hour}.json`;
+        try {
+          const res = await fetch(url);
+          if (res.ok) {
+            const json = await res.json();
+            results.push({ hour: h, ...json });
+          }
+        } catch (e) {
+          console.warn(`小时 ${h} 加载失败`, e);
+        }
+      }
+
+      return results;
+    }
+
+    function renderTable(rows) {
+      const tbody = document.getElementById('tbody');
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="loading">暂无数据</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map(r => {
+        const items = r.data || [];
+        return items.map((item, i) => `
+          <tr>
+            <td>${i === 0 ? r.hour + ':00' : ''}</td>
+            <td>${item.CDMC || '-'}</td>
+            <td>${item.SO2 ?? '-'}</td>
+            <td>${item.PM10 ?? '-'}</td>
+            <td>${item.O3 ?? '-'}</td>
+            <td>${item.PM25 ?? '-'}</td>
+            <td>${item.NO2 ?? '-'}</td>
+            <td>${item.CO ?? '-'}</td>
+          </tr>
+        `).join('');
+      }).join('');
+    }
+
+    function avg(arr, key) {
+      const vals = arr.map(x => parseFloat(x[key])).filter(n => !isNaN(n));
+      return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+    }
+
+    function renderChart(rows) {
+      const chart = echarts.init(document.getElementById('chart'));
+      const hours = [];
+      const so2 = [], pm10 = [], o3 = [], pm25 = [], no2 = [], co = [];
+
+      rows.forEach(r => {
+        const items = r.data || [];
+        hours.push(r.hour + ':00');
+        so2.push(items.length ? avg(items, 'SO2') : null);
+        pm10.push(items.length ? avg(items, 'PM10') : null);
+        o3.push(items.length ? avg(items, 'O3') : null);
+        pm25.push(items.length ? avg(items, 'PM25') : null);
+        no2.push(items.length ? avg(items, 'NO2') : null);
+        co.push(items.length ? avg(items, 'CO') : null);
+      });
+
+      chart.setOption({
+        backgroundColor: 'transparent',
+        tooltip: { trigger: 'axis' },
+        legend: {
+          data: ['SO2', 'PM10', 'O3', 'PM2.5', 'NO2', 'CO'],
+          textStyle: { color: '#8b949e' },
+        },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: {
+          type: 'category',
+          data: hours,
+          axisLine: { lineStyle: { color: '#30363d' } },
+          axisLabel: { color: '#8b949e' },
+        },
+        yAxis: {
+          type: 'value',
+          axisLine: { show: false },
+          splitLine: { lineStyle: { color: '#21262d' } },
+          axisLabel: { color: '#8b949e' },
+        },
+        series: [
+          { name: 'SO2', type: 'line', smooth: true, data: so2 },
+          { name: 'PM10', type: 'line', smooth: true, data: pm10 },
+          { name: 'O3', type: 'line', smooth: true, data: o3 },
+          { name: 'PM2.5', type: 'line', smooth: true, data: pm25 },
+          { name: 'NO2', type: 'line', smooth: true, data: no2 },
+          { name: 'CO', type: 'line', smooth: true, data: co },
+        ],
+      });
+    }
+
+    document.getElementById('load').addEventListener('click', async () => {
+      const btn = document.getElementById('load');
+      btn.disabled = true;
+      btn.textContent = '加载中...';
+      try {
+        const rows = await loadDayData();
+        renderTable(rows);
+        renderChart(rows);
+      } catch (e) {
+        document.getElementById('tbody').innerHTML = `<tr><td colspan="8" class="error">加载失败: ${e.message}</td></tr>`;
+      }
+      btn.disabled = false;
+      btn.textContent = '加载数据';
+    });
+
+    initDateSelects();
+    document.getElementById('load').click();
+  </script>
+</body>
+
+</html>
