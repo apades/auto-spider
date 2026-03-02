@@ -16,14 +16,50 @@ function ensureDir(dirPath) {
 }
 
 /**
+ * 获取某天的数据目录路径
+ */
+function getDayDir(siteName, year, month, day) {
+  return path.join(DATA_DIR, siteName, String(year), String(month).padStart(2, '0'), String(day).padStart(2, '0'));
+}
+
+/**
  * 保存数据到 data/站点/年/月/日/小时.json
  */
 function saveData(siteName, year, month, day, hour, data) {
-  const dir = path.join(DATA_DIR, siteName, String(year), String(month).padStart(2, '0'), String(day).padStart(2, '0'));
+  const dir = getDayDir(siteName, year, month, day);
   ensureDir(dir);
   const filePath = path.join(dir, `${String(hour).padStart(2, '0')}.json`);
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
   console.log(`已保存: ${filePath}`);
+}
+
+/**
+ * 生成 all.json：汇总当天所有小时数据，供前端单次请求使用
+ */
+function buildAllJson(siteName, year, month, day) {
+  const dir = getDayDir(siteName, year, month, day);
+  if (!fs.existsSync(dir)) return;
+
+  const hours = [];
+  for (let h = 0; h < 24; h++) {
+    const hourStr = String(h).padStart(2, '0');
+    const filePath = path.join(dir, `${hourStr}.json`);
+    if (fs.existsSync(filePath)) {
+      const content = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+      hours.push({ hour: h, ...content });
+    } else {
+      hours.push(null);
+    }
+  }
+
+  const allData = {
+    site: siteName,
+    date: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+    hours,
+  };
+  const allPath = path.join(dir, 'all.json');
+  fs.writeFileSync(allPath, JSON.stringify(allData, null, 2), 'utf-8');
+  console.log(`已生成: ${allPath}`);
 }
 
 /**
@@ -82,9 +118,12 @@ async function main() {
     await fetchAndSave(now, currentHour);
 
     // 2. 补全当天 0 ~ currentHour-1 的数据（若文件不存在则抓取）
-    const dataDir = path.join(DATA_DIR, SITE_NAME, String(now.getFullYear()),
-      String(now.getMonth() + 1).padStart(2, '0'),
-      String(now.getDate()).padStart(2, '0'));
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const day = now.getDate();
+    const dataDir = path.join(DATA_DIR, SITE_NAME, String(year),
+      String(month).padStart(2, '0'),
+      String(day).padStart(2, '0'));
     for (let h = 0; h < currentHour; h++) {
       const hourFile = path.join(dataDir, `${String(h).padStart(2, '0')}.json`);
       if (!fs.existsSync(hourFile)) {
@@ -96,6 +135,9 @@ async function main() {
         }
       }
     }
+
+    // 3. 生成 all.json 供前端单次请求
+    buildAllJson(SITE_NAME, year, month, day);
   } catch (err) {
     console.error('抓取失败:', err);
     process.exit(1);
