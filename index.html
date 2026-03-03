@@ -143,7 +143,7 @@
       background: var(--card);
       border-radius: 12px;
       border: 1px solid var(--border);
-      overflow: hidden;
+      overflow: auto;
     }
 
     table {
@@ -223,22 +223,22 @@
           <div id="chart"></div>
         </div>
         <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>小时</th>
-            <th>站点</th>
-            <th>SO2</th>
+          <table>
+            <thead>
+              <tr>
+                <th>小时</th>
+                <th>站点</th>
+            <th>NO2</th>
             <th>PM10</th>
             <th>O3</th>
             <th>PM2.5</th>
-            <th>NO2</th>
-            <th>CO</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
-    </div>
+            <th>SO2</th>
+                <th>CO</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -342,11 +342,11 @@
           <tr>
             <td>${i === 0 ? r.hour + ':00' : ''}</td>
             <td>${item.CDMC || '-'}</td>
-            <td>${item.SO2 ?? '-'}</td>
+            <td>${item.NO2 ?? '-'}</td>
             <td>${item.PM10 ?? '-'}</td>
             <td>${item.O3 ?? '-'}</td>
             <td>${item.PM25 ?? '-'}</td>
-            <td>${item.NO2 ?? '-'}</td>
+            <td>${item.SO2 ?? '-'}</td>
             <td>${item.CO ?? '-'}</td>
           </tr>
         `).join('');
@@ -378,7 +378,7 @@
         backgroundColor: 'transparent',
         tooltip: { trigger: 'axis' },
         legend: {
-          data: ['SO2', 'PM10', 'O3', 'PM2.5', 'NO2', 'CO'],
+          data: ['NO2', 'PM10', 'O3', 'PM2.5', 'SO2', 'CO'],
           textStyle: { color: '#8b949e' },
         },
         grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
@@ -395,11 +395,11 @@
           axisLabel: { color: '#8b949e' },
         },
         series: [
-          { name: 'SO2', type: 'line', smooth: true, data: so2 },
+          { name: 'NO2', type: 'line', smooth: true, data: no2 },
           { name: 'PM10', type: 'line', smooth: true, data: pm10 },
           { name: 'O3', type: 'line', smooth: true, data: o3 },
           { name: 'PM2.5', type: 'line', smooth: true, data: pm25 },
-          { name: 'NO2', type: 'line', smooth: true, data: no2 },
+          { name: 'SO2', type: 'line', smooth: true, data: so2 },
           { name: 'CO', type: 'line', smooth: true, data: co },
         ],
       });
