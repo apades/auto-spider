@@ -424,7 +424,7 @@
         } else {
           noDataMsg.classList.remove('show');
           mainContent.style.display = '';
-          renderTable(rows);
+          renderTable([...rows].sort((a, b) => b.hour - a.hour));
           renderChart(rows);
         }
       } catch (e) {
