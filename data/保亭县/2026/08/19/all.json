@@ -1,0 +1,57 @@
+{
+  "site": "保亭县",
+  "date": "2026-08-19",
+  "hours": [
+    {
+      "hour": 0,
+      "data": [
+        {
+          "CDMC": "保亭中学",
+          "SO2": "3",
+          "PM10": "7",
+          "O3": "36",
+          "PM25": "6",
+          "NO2": "7",
+          "CO": "0.4",
+          "JCSJ": 1787097600000
+        },
+        {
+          "CDMC": "保亭思源中学",
+          "SO2": "3",
+          "PM10": "13",
+          "O3": "32",
+          "PM25": "7",
+          "NO2": "4",
+          "CO": "0.4",
+          "JCSJ": 1787097600000
+        }
+      ],
+      "fetchedAt": "2026-08-19 00:46:48",
+      "site": "保亭县",
+      "siteCode": "469029"
+    },
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ]
+}
